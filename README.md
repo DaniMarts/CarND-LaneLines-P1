@@ -1,56 +1,81 @@
 # **Finding Lane Lines on the Road** 
-[![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
 
-<img src="examples/laneLines_thirdPass.jpg" width="480" alt="Combined Image" />
-
-Overview
 ---
 
-When we drive, we use our eyes to decide where to go.  The lines on the road that show us where the lanes are act as our constant reference for where to steer the vehicle.  Naturally, one of the first things we would like to do in developing a self-driving car is to automatically detect lane lines using an algorithm.
+**Finding Lane Lines on the Road**
 
-In this project you will detect lane lines in images using Python and OpenCV.  OpenCV means "Open-Source Computer Vision", which is a package that has many useful tools for analyzing images.  
+This project is part of Udacity's Self-Driving car Nanodegree.
 
-To complete the project, two files will be submitted: a file containing project code and a file containing a brief write up explaining your solution. We have included template files to be used both for the [code](https://github.com/udacity/CarND-LaneLines-P1/blob/master/P1.ipynb) and the [writeup](https://github.com/udacity/CarND-LaneLines-P1/blob/master/writeup_template.md).The code file is called P1.ipynb and the writeup template is writeup_template.md 
-
-To meet specifications in the project, take a look at the requirements in the [project rubric](https://review.udacity.com/#!/rubrics/322/view)
-
-
-Creating a Great Writeup
----
-For this project, a great writeup should provide a detailed response to the "Reflection" section of the [project rubric](https://review.udacity.com/#!/rubrics/322/view). There are three parts to the reflection:
-
-1. Describe the pipeline
-
-2. Identify any shortcomings
-
-3. Suggest possible improvements
-
-We encourage using images in your writeup to demonstrate how your pipeline works.  
-
-All that said, please be concise!  We're not looking for you to write a book here: just a brief description.
-
-You're not required to use markdown for your writeup.  If you use another method please just submit a pdf of your writeup. Here is a link to a [writeup template file](https://github.com/udacity/CarND-LaneLines-P1/blob/master/writeup_template.md). 
-
-
-The Project
+The goals / steps of this project are the following:
+* Make a pipeline that finds lane lines on the road
+* Provide a reflection on the work in a written report
 ---
 
-## If you have already installed the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) you should be good to go!   If not, you should install the starter kit to get started on this project. ##
+### Reflection
 
-**Step 1:** Set up the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) if you haven't already.
+### 1. Pipeline description
 
-**Step 2:** Open the code in a Jupyter Notebook
+The pipeline consisted of six steps. One of the test images will be used to describe the pipeline, and it is show below.
 
-You will complete the project code in a Jupyter notebook.  If you are unfamiliar with Jupyter Notebooks, check out [Udacity's free course on Anaconda and Jupyter Notebooks](https://classroom.udacity.com/courses/ud1111) to get started.
+<img src="test_images/solidYellowCurve2.jpg" alt="test image"/>
 
-Jupyter is an Ipython notebook where you can run blocks of code and see results interactively.  All the code for this project is contained in a Jupyter notebook. To start Jupyter in your browser, use terminal to navigate to your project directory and then run the following command at the terminal prompt (be sure you've activated your Python 3 carnd-term1 environment as described in the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) installation instructions!):
+First, the `color_focus` function is used to keep only shades of yellow and of white in the image, with the rest in black.
 
-`> jupyter notebook`
+<img src="test_images_output/image3color_focused.png" alt="test image after color detection"/>
 
-A browser window will appear showing the contents of the current directory.  Click on the file called "P1.ipynb".  Another browser window will appear displaying the notebook.  Follow the instructions in the notebook to complete the project.  
+This image is then converted to grayscale using the `grayscale` function,
+<img src="test_images_output/image3grayed.png" alt="grayscale image"/>
 
-**Step 3:** Complete the project and submit both the Ipython notebook and the project writeup
+and then blurred with the `gaussian_blur` function, in order to remove uncessesary edges. This is shown below.
 
-## How to write a README
-A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
+<img src="test_images_output/image3blurred.png" alt="blurred grayscale image"/>
 
+
+The result is then passed onto the canny edge detection function, `canny`, which returns an image mask with the edges in white and the rest in black, as seen below. 
+
+<img src="test_images_output/image3cannyed.png" alt="image after canny edge detection"/>
+
+The next step would be to determine the region of interest, where the lanes are most of the time. In order to do that, vertices were created, and a polygon was drawn to show to suitability of the vertices, as seen below.
+
+<img src="test_images_output/image3highlighted.png" alt="the region of interest"/>
+
+This drawn region of interest was found to be suitable, and therefore, the process can resume.
+
+The region of interest was applied to the canny edge detection output image using the `region_of_interest` function, and the output was as follows.
+
+<img src="test_images_output/image3focused.png" alt="edges in the region of interest"/>
+
+The `draw_lines` function was used to draw the lines on the image above, and the result was overlayed on the initial image. It is important to notice that this is the same function that was provided, that simply draws the lines passed by the `hough_lines` function, after being filtered by the `filter_lines` function. The `filter_lines` function takes the lines from the `hough_lines` output, removes horizontal and vertical, as well as lines with other abnormal slopes and vertical offsets, and returns either the filtered lines in a list or the mean slopes and vertical offsets for the right and left lanes, depending on what is passed as the `summary_required` parameter. This is shown below. 
+
+<img src="test_images_output/image3with_lines.png" alt="Image after drawing the line segments"/>
+
+A Hough tranform for line detection is then applied again on the image above the previous one, using the original `cv2.HoughTranformP`, with the returned lines being passed to the `draw_lanes` function. This is the function responsible for the final step of the pipeline, which is to draw the lane lines on the image of the road. This function takes the lines, calls the `filter_lines` function and receives the mean slopes and vertical offsets for the right and left lanes. With this, it calculates the x, y points required to draw the two lane lines in the region of interest, with the result shown below.
+
+<img src="test_images_output/image3final_result.png" alt="Image after drawing the line segments"/>
+
+In this image, purple is used for better contrast with yellow lines.
+
+This pipeline is then used to draw the lanes on the videos. 
+
+
+There is also the `addFrameN` function, that puts the frame number on the videos, in order to make it easier to find and fix the video rames with problems.
+
+This pipeline was found to work quite well with all the videos, including the challenge video.
+[<video src="test_videos_output/challenge.mp4" alt="challenge video" width="100%" />](test_videos_output/challenge.mp4)
+
+However, it is not perfect, as seen in the following section.
+
+### 2. Identify potential shortcomings with your current pipeline
+
+
+One potential shortcoming would be what would happen when at least on one side of the lanes, there are no lines with acceptable slopes, or the lines are too short. This would give errors, and the frame would be black.
+
+Another shortcoming is that on some frames of the `challenge` video, the calculated line slopes would be far from the real one in the video.
+
+### 3. Suggest possible improvements to your pipeline
+
+A possible improvement would be to make the lane lines oscillate less from one video frame to another.
+
+Another potential improvement could be to add better error handling.
+
+It would also be better if the region of interest could extend a little bit further forward on the road.
